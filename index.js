@@ -8,6 +8,7 @@ const app = express();
 const User = require('./routes/user.route');
 const Project = require('./routes/project.route');
 const Task = require('./routes/task.route');
+const Comment = require('./routes/comment.route');
 connectDB();
 app.use(
   cors({
@@ -24,6 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/user', User);
 app.use('/project', Project);
 app.use('/task', Task);
+app.use('/comment', Comment);
 
 app.listen(port, (error) => {
   error ? console.log(error) : console.log(`server started on: ${port}`);

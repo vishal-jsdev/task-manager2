@@ -1,4 +1,4 @@
-const Commnet = require('../models/comment.Schema');
+const Comment = require('../models/comment.Schema');
 const mongoose = require('mongoose');
 
 const {
@@ -9,59 +9,53 @@ const { ApiResponse } = require('../utils/APIResponse');
 const { ApiError } = require('../utils/APIError');
 
 module.exports.addComment = asyncHandler(async (req, res) => {
-  const { name, subject, dueDate, status, priority, assignedTo, projectId } = req.body;
-  if (!name || !subject || !dueDate || !status || !priority || !assignedTo || !projectId) {
+  const { comment, date, taskId } = req.body;
+  if (!comment || !date || !taskId) {
     throw ApiError.badRequest(
-      'Name, Subject, Due Date, Status, Priority, Assigned To and Project Id are required'
+      'Comment, Date and Task Id are required'
     );
   }
 
-  const parsedDueDate = validateDate(dueDate);
+  const parsedDate = validateDate(date);
   
 
 
-  const task = new Task({
-    name,
-    subject,
-    dueDate: parsedDueDate,
-    status,
-    priority,
-    assignedTo,
-    projectId
+  const commentData = new Comment({
+    comment,
+    date: parsedDate,
+    taskId
   });
-  const newTask = await task.save();
+  const newComment = await commentData.save();
 
   
   return res
     .status(201)
     .json(
       ApiResponse.created(
-        { id: newTask._id, name: newTask.name, subject: newTask.subject, dueDate: newTask.dueDate, status: newTask.status, priority: newTask.priority, assignedTo: newTask.assignedTo, projectId: newTask.projectId },
-        'Task created successfully!'
+        { id: newComment._id, comment: newComment.comment, date: newComment.date, taskId: newComment.taskId },
+        'Comment created successfully!'
       )
     );
 });
 
-module.exports.updateTask = asyncHandler(async (req, res) => {
- const { id, name, subject, dueDate, status, priority, assignedTo, projectId } = req.body;
-  if (!id || !name || !subject || !dueDate || !status || !priority || !assignedTo || !projectId) {
+module.exports.updateComment = asyncHandler(async (req, res) => {
+ const { id, comment, date, taskId } = req.body;
+  if (!comment || !date || !taskId) {
     throw ApiError.badRequest(
-      'ID, Name, Subject, Due Date, Status, Priority, Assigned To and Project Id are required'
+      'ID, Comment, Date and Task Id are required'
     );
   }
 
-  const parsedDueDate = validateDate(dueDate);
+  const parsedDate = validateDate(date);
+  
+
   let saveData = {
-    name,
-    subject,
-    dueDate: parsedDueDate,
-    status,
-    priority,
-    assignedTo,
-    projectId
+    comment,
+    date: parsedDate,
+    taskId
   } 
 
-let taskData = await Task.findByIdAndUpdate(
+let commentData = await Comment.findByIdAndUpdate(
       id,
       { $set: saveData },
       { new: true, runValidators: true }
@@ -71,73 +65,50 @@ let taskData = await Task.findByIdAndUpdate(
     .status(200)
     .json(
       ApiResponse.success(
-        taskData,
-        'Task updated successfully!'
+        commentData,
+        'Comment updated successfully!'
       )
     );
 });
 
-module.exports.getTask = asyncHandler(async (req, res) => {
-  const { id } = req.params;
 
-
-  let taskData = await Task.findById(id);
-  if (!taskData) {
-    throw ApiError.notFound('Task is not found');
-  }
-
-  return res
-    .status(200)
-    .json(
-      ApiResponse.success(
-        taskData,
-        'Task got successfully!'
-      )
-    );
-});
-
-module.exports.removeTask = asyncHandler(async (req, res) => {
+module.exports.removeComment = asyncHandler(async (req, res) => {
 const { id } = req.params;
 
 
-let taskData = await Task.findByIdAndDelete(id);
+let commentData = await Comment.findByIdAndDelete(id);
   
   return res
     .status(200)
     .json(
       ApiResponse.success(
-        taskData,
-        'Task data deleted successfully!'
+        commentData,
+        'Comment data deleted successfully!'
       )
     );
 });
 
-module.exports.getTasks = asyncHandler(async (req, res) => {
-let { page, limit, status, priority, assignedTo } = req.query;
+module.exports.getComments = asyncHandler(async (req, res) => {
+let { page, limit, taskId} = req.query;
 page = parseInt(page) || 1;
 limit = parseInt(limit) || 10;
 
 const skip = (page - 1) * limit;
 
 let match = {}
-if(status){
-  match = { status }
-}
-if(priority){
-  match = {...match, priority}
-}
-if( assignedTo){
-  match = {...match, assignedTo}
+if(taskId){
+  match = { taskId }
 }
 
-let tasks = await Task.find(match).sort({ date: -1 }).skip(skip).limit(limit).lean();
+
+let comments = await Comment.find(match).sort({ date: -1 }).skip(skip).limit(limit).lean();
   
   return res
     .status(200)
     .json(
       ApiResponse.success(
-        tasks,
-        'Tasks got successfully!'
+        comments,
+        'Comments got successfully!'
       )
     );
 });
