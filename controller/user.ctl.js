@@ -74,7 +74,9 @@ const userData = await User.findByIdAndUpdate(
       { $set: saveData },
       { new: true, runValidators: true }
     );
-  
+if (!userData) {
+    throw ApiError.notFound('User is not found');
+  }  
   return res
     .status(200)
     .json(
@@ -109,7 +111,9 @@ const { id } = req.params;
 validateId(id, 'User')
 
 const userData = await User.findByIdAndDelete(id);
-  
+if (!userData) {
+    throw ApiError.notFound('User is not found');
+}  
   return res
     .status(200)
     .json(

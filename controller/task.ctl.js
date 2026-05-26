@@ -54,11 +54,6 @@ module.exports.addTask = asyncHandler(async (req, res) => {
 
 module.exports.updateTask = asyncHandler(async (req, res) => {
  const { id, dueDate, ...reqData } = req.body;
-  if (!id || !name || !subject || !dueDate || !status || !priority || !assignedTo || !projectId) {
-    throw ApiError.badRequest(
-      'ID, Name, Subject, Due Date, Status, Priority, Assigned To and Project Id are required'
-    );
-  }
   validateId(id, 'Task');
 
   const parsedDueDate = validateDate(dueDate);
@@ -72,6 +67,10 @@ const taskData = await Task.findByIdAndUpdate(
       { $set: saveData },
       { new: true, runValidators: true }
     );
+if (!taskData) {
+    throw ApiError.notFound('Task is not found');
+}
+
   
   return res
     .status(200)
@@ -107,7 +106,9 @@ const { id } = req.params;
 validateId(id, 'Task')
 
 const taskData = await Task.findByIdAndDelete(id);
-  
+if (!taskData) {
+    throw ApiError.notFound('Task is not found');
+}  
   return res
     .status(200)
     .json(

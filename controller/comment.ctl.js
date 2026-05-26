@@ -61,7 +61,9 @@ const commentData = await Comment.findByIdAndUpdate(
       { $set: saveData },
       { new: true, runValidators: true }
     );
-  
+if (!commentData) {
+    throw ApiError.notFound('Comment is not found');
+}    
   return res
     .status(200)
     .json(
@@ -78,7 +80,9 @@ const { id } = req.params;
 validateId(id, 'Comment')
 
 const commentData = await Comment.findByIdAndDelete(id);
-  
+if (!commentData) {
+    throw ApiError.notFound('Comment is not found');
+}  
   return res
     .status(200)
     .json(

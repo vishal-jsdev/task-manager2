@@ -65,6 +65,10 @@ const projectData = await Project.findByIdAndUpdate(
       { $set: saveData },
       { new: true, runValidators: true }
     );
+
+if (!projectData) {
+    throw ApiError.notFound('Project is not found');
+}
   
   return res
     .status(200)
@@ -100,7 +104,10 @@ const { id } = req.params;
 validateId(id, 'Project')
 
 const projectData = await Project.findByIdAndDelete(id);
-  
+ 
+if (!projectData) {
+    throw ApiError.notFound('Project is not found');
+}
   return res
     .status(200)
     .json(
