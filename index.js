@@ -5,6 +5,7 @@ const port = process.env.PORT || 3000;
 const dotenv = require('dotenv');
 dotenv.config();
 const app = express();
+const { ApiError, errorHandler } = require('./utils/APIError');
 const User = require('./routes/user.route');
 const Project = require('./routes/project.route');
 const Task = require('./routes/task.route');
@@ -27,6 +28,8 @@ app.use('/project', Project);
 app.use('/task', Task);
 app.use('/comment', Comment);
 
+// Global error handler middleware
+app.use(errorHandler);
 app.listen(port, (error) => {
   error ? console.log(error) : console.log(`server started on: ${port}`);
 });
