@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const {
-  validateDate
+  validateDate,
+  validateId
 } = require('../utils/user/userData.helper');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { ApiResponse } = require('../utils/APIResponse');
@@ -13,7 +14,14 @@ module.exports.addUser = asyncHandler(async (req, res) => {
   const { firstName, lastName , email , password, date } = req.body;
   if (!firstName || !lastName || !email || !password || !date) {
     throw ApiError.badRequest(
-      'First Name, Last Name, Email, Password and Date are required'
+      'First Name, Last Name, Email, Password and Date are required',
+      {
+        firstName: !firstName ? 'First Name is required' : undefined,
+        lastName: !lastName ? 'Last Name is required' : undefined,
+        email: !email ? 'Email is required' : undefined,
+        password: !password ? 'Password is required' : undefined,
+        date: !date ? 'Date is required' : undefined,
+      }
     );
   }
 
@@ -43,31 +51,25 @@ if (password.length < 6) {
     .status(201)
     .json(
       ApiResponse.created(
-        { id: newUser._id, firstName: newUser.firstName, lastName: newUser.lastName, email: newUser.email, password: newUser.password, date: newUser.date },
+        newUser,
         'User created successfully!'
       )
     );
 });
 
 module.exports.updateUser = asyncHandler(async (req, res) => {
-  const { id, firstName, lastName , email , password, date } = req.body;
-  if (!id || !firstName || !lastName || !email || !password || !date) {
-    throw ApiError.badRequest(
-      'ID, First Name, Last Name, Email, Password and Date are required'
-    );
-  }
-
+  const { id, date, password, ...reqData } = req.body;
+  
+  validateId(id, 'User')
   const parsedDate = validateDate(date);
   const hashedPassword = await bcrypt.hash(password, 10);
-  let saveData = {
-    firstName,
-    lastName,
-    email,
+  const saveData = {
+    ...reqData,
     password: hashedPassword,
     date: parsedDate
   } 
 
-let userData = await User.findByIdAndUpdate(
+const userData = await User.findByIdAndUpdate(
       id,
       { $set: saveData },
       { new: true, runValidators: true }
@@ -85,9 +87,9 @@ let userData = await User.findByIdAndUpdate(
 
 module.exports.getUser = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  validateId(id, 'User')
 
-
-  let userData = await User.findById(id);
+  const userData = await User.findById(id);
   if (!userData) {
     throw ApiError.notFound('User is not found');
   }
@@ -104,9 +106,9 @@ module.exports.getUser = asyncHandler(async (req, res) => {
 
 module.exports.removeUser = asyncHandler(async (req, res) => {
 const { id } = req.params;
+validateId(id, 'User')
 
-
-let userData = await User.findByIdAndDelete(id);
+const userData = await User.findByIdAndDelete(id);
   
   return res
     .status(200)
@@ -124,14 +126,14 @@ page = parseInt(page) || 1;
 limit = parseInt(limit) || 10;
 
 const skip = (page - 1) * limit;
-let users = await User.find().sort({ date: -1 }).skip(skip).limit(limit).lean();
+const users = await User.find().sort({ date: -1 }).skip(skip).limit(limit).lean();
   
   return res
     .status(200)
     .json(
       ApiResponse.success(
         users,
-        'Users got successfully!'
+        'Users fetched successfully'
       )
     );
 });

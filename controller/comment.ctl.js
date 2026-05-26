@@ -2,7 +2,8 @@ const Comment = require('../models/comment.Schema');
 const mongoose = require('mongoose');
 
 const {
-  validateDate
+  validateDate,
+  validateId
 } = require('../utils/user/userData.helper');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { ApiResponse } = require('../utils/APIResponse');
@@ -12,7 +13,12 @@ module.exports.addComment = asyncHandler(async (req, res) => {
   const { comment, date, taskId } = req.body;
   if (!comment || !date || !taskId) {
     throw ApiError.badRequest(
-      'Comment, Date and Task Id are required'
+      'Comment, Date and Task Id are required',
+      {
+        comment: !comment ? 'Comment is required' : undefined,
+        date: !date ? 'Date is required' : undefined,
+        taskId: !taskId ? 'Task Id is required' : undefined
+      }
     );
   }
 
@@ -32,30 +38,25 @@ module.exports.addComment = asyncHandler(async (req, res) => {
     .status(201)
     .json(
       ApiResponse.created(
-        { id: newComment._id, comment: newComment.comment, date: newComment.date, taskId: newComment.taskId },
+        newComment,
         'Comment created successfully!'
       )
     );
 });
 
 module.exports.updateComment = asyncHandler(async (req, res) => {
- const { id, comment, date, taskId } = req.body;
-  if (!comment || !date || !taskId) {
-    throw ApiError.badRequest(
-      'ID, Comment, Date and Task Id are required'
-    );
-  }
-
+ const { id,  date, ...reqData } = req.body;
+  
+  validateId(id, 'Comment')
   const parsedDate = validateDate(date);
   
 
-  let saveData = {
-    comment,
-    date: parsedDate,
-    taskId
+  const saveData = {
+    ...reqData,
+    date: parsedDate
   } 
 
-let commentData = await Comment.findByIdAndUpdate(
+const commentData = await Comment.findByIdAndUpdate(
       id,
       { $set: saveData },
       { new: true, runValidators: true }
@@ -74,9 +75,9 @@ let commentData = await Comment.findByIdAndUpdate(
 
 module.exports.removeComment = asyncHandler(async (req, res) => {
 const { id } = req.params;
+validateId(id, 'Comment')
 
-
-let commentData = await Comment.findByIdAndDelete(id);
+const commentData = await Comment.findByIdAndDelete(id);
   
   return res
     .status(200)
@@ -101,14 +102,14 @@ if(taskId){
 }
 
 
-let comments = await Comment.find(match).sort({ date: -1 }).skip(skip).limit(limit).lean();
+const comments = await Comment.find(match).sort({ date: -1 }).skip(skip).limit(limit).lean();
   
   return res
     .status(200)
     .json(
       ApiResponse.success(
         comments,
-        'Comments got successfully!'
+        'Comments fetched successfully'
       )
     );
 });

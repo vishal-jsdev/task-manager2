@@ -2,7 +2,8 @@ const Project = require('../models/project.Schema');
 const mongoose = require('mongoose');
 
 const {
-  validateDate
+  validateDate,
+  validateId
 } = require('../utils/user/userData.helper');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { ApiResponse } = require('../utils/APIResponse');
@@ -12,7 +13,13 @@ module.exports.addProject = asyncHandler(async (req, res) => {
   const { name, description, startDate, endDate, createdBy } = req.body;
   if (!name || !description || !startDate || !endDate) {
     throw ApiError.badRequest(
-      'Name, Description, startDate and endDate are required'
+      'Name, Description, startDate and endDate are required',
+       {
+        name: !name ? 'Name is required' : undefined,
+        description: !description ? 'Description is required' : undefined,
+        startDate: !startDate ? 'Start Date is required' : undefined,
+        endDate: !endDate ? 'End Date is required' : undefined
+      }
     );
   }
 
@@ -34,30 +41,26 @@ module.exports.addProject = asyncHandler(async (req, res) => {
     .status(201)
     .json(
       ApiResponse.created(
-        { id: newProject._id, name: newProject.name, description: newProject.description, startDate: newProject.startDate, endDate: newProject.endDate, createdBy: newProject.createdBy },
+        newProject,
         'Project created successfully!'
       )
     );
 });
 
 module.exports.updateProject = asyncHandler(async (req, res) => {
-  const { id, name, description, startDate, endDate } = req.body;
-  if (!id || !name || !description || !startDate || !endDate) {
-    throw ApiError.badRequest(
-      'ID, Name, Description, startDate and endDate are required'
-    );
-  }
+  const { id, startDate, endDate, ...reqData } = req.body;
+  
+  validateId(id, 'Project')
 
   const parsedStartDate = validateDate(startDate);
   const parsedEndDate = validateDate(endDate);
-  let saveData = {
-    name,
-    description,
+  const saveData = {
+    ...reqData,
     startDate: parsedStartDate,
     endDate:parsedEndDate
   } 
 
-let projectData = await Project.findByIdAndUpdate(
+const projectData = await Project.findByIdAndUpdate(
       id,
       { $set: saveData },
       { new: true, runValidators: true }
@@ -75,9 +78,9 @@ let projectData = await Project.findByIdAndUpdate(
 
 module.exports.getProject = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  validateId(id, 'Project')
 
-
-  let projectData = await Project.findById(id);
+  const projectData = await Project.findById(id);
   if (!projectData) {
     throw ApiError.notFound('Project is not found');
   }
@@ -94,9 +97,9 @@ module.exports.getProject = asyncHandler(async (req, res) => {
 
 module.exports.removeProject = asyncHandler(async (req, res) => {
 const { id } = req.params;
+validateId(id, 'Project')
 
-
-let projectData = await Project.findByIdAndDelete(id);
+const projectData = await Project.findByIdAndDelete(id);
   
   return res
     .status(200)
@@ -119,14 +122,14 @@ let match = {}
 if(ownerId){
   match = { createdBy : ownerId}
 }
-let projects = await Project.find(match).sort({ date: -1 }).skip(skip).limit(limit).lean();
+const projects = await Project.find(match).sort({ date: -1 }).skip(skip).limit(limit).lean();
   
   return res
     .status(200)
     .json(
       ApiResponse.success(
         projects,
-        'Projects got successfully!'
+        'Projects fetched successfully'
       )
     );
 });

@@ -2,7 +2,8 @@ const Task = require('../models/task.Schema');
 const mongoose = require('mongoose');
 
 const {
-  validateDate
+  validateDate,
+  validateId
 } = require('../utils/user/userData.helper');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { ApiResponse } = require('../utils/APIResponse');
@@ -12,7 +13,16 @@ module.exports.addTask = asyncHandler(async (req, res) => {
   const { name, subject, dueDate, status, priority, assignedTo, projectId } = req.body;
   if (!name || !subject || !dueDate || !status || !priority || !assignedTo || !projectId) {
     throw ApiError.badRequest(
-      'Name, Subject, Due Date, Status, Priority, Assigned To and Project Id are required'
+      'Name, Subject, Due Date, Status, Priority, Assigned To and Project Id are required',
+      {
+        name: !name ? 'Name is required' : undefined,
+        subject: !subject ? 'Subject is required' : undefined,
+        dueDate: !dueDate ? 'Due Date is required' : undefined,
+        status: !status ? 'Status is required' : undefined,
+        priority: !priority ? 'Priority is required' : undefined,
+        assignedTo: !assignedTo ? 'Assigned To is required' : undefined,
+        projectId: !projectId ? 'Project Id is required' : undefined,
+      }
     );
   }
 
@@ -36,32 +46,28 @@ module.exports.addTask = asyncHandler(async (req, res) => {
     .status(201)
     .json(
       ApiResponse.created(
-        { id: newTask._id, name: newTask.name, subject: newTask.subject, dueDate: newTask.dueDate, status: newTask.status, priority: newTask.priority, assignedTo: newTask.assignedTo, projectId: newTask.projectId },
+        newTask,
         'Task created successfully!'
       )
     );
 });
 
 module.exports.updateTask = asyncHandler(async (req, res) => {
- const { id, name, subject, dueDate, status, priority, assignedTo, projectId } = req.body;
+ const { id, dueDate, ...reqData } = req.body;
   if (!id || !name || !subject || !dueDate || !status || !priority || !assignedTo || !projectId) {
     throw ApiError.badRequest(
       'ID, Name, Subject, Due Date, Status, Priority, Assigned To and Project Id are required'
     );
   }
+  validateId(id, 'Task');
 
   const parsedDueDate = validateDate(dueDate);
-  let saveData = {
-    name,
-    subject,
-    dueDate: parsedDueDate,
-    status,
-    priority,
-    assignedTo,
-    projectId
+  const saveData = {
+    ...reqData,
+    dueDate: parsedDueDate
   } 
 
-let taskData = await Task.findByIdAndUpdate(
+const taskData = await Task.findByIdAndUpdate(
       id,
       { $set: saveData },
       { new: true, runValidators: true }
@@ -79,9 +85,9 @@ let taskData = await Task.findByIdAndUpdate(
 
 module.exports.getTask = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  validateId(id, 'Task')
 
-
-  let taskData = await Task.findById(id);
+  const taskData = await Task.findById(id);
   if (!taskData) {
     throw ApiError.notFound('Task is not found');
   }
@@ -98,9 +104,9 @@ module.exports.getTask = asyncHandler(async (req, res) => {
 
 module.exports.removeTask = asyncHandler(async (req, res) => {
 const { id } = req.params;
+validateId(id, 'Task')
 
-
-let taskData = await Task.findByIdAndDelete(id);
+const taskData = await Task.findByIdAndDelete(id);
   
   return res
     .status(200)
@@ -130,14 +136,14 @@ if( assignedTo){
   match = {...match, assignedTo}
 }
 
-let tasks = await Task.find(match).sort({ date: -1 }).skip(skip).limit(limit).lean();
+const tasks = await Task.find(match).sort({ date: -1 }).skip(skip).limit(limit).lean();
   
   return res
     .status(200)
     .json(
       ApiResponse.success(
         tasks,
-        'Tasks got successfully!'
+        'Tasks fetched successfully'
       )
     );
 });
