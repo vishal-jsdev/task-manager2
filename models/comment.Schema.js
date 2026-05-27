@@ -18,6 +18,7 @@ const commentSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+commentSchema.index({taskId:1})
 
 const Comment = mongoose.model('Comment', commentSchema);
 module.exports = Comment;
